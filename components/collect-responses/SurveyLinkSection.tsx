@@ -2,20 +2,19 @@
 
 import { useState, useCallback } from "react";
 
-const MOCK_SURVEY_LINK = "https://www.surveymonkey.com/r/L6C6XCL";
-
 interface SurveyLinkSectionProps {
   surveyLink?: string;
   onLinkChange?: (link: string) => void;
 }
 
 export default function SurveyLinkSection({
-  surveyLink = MOCK_SURVEY_LINK,
+  surveyLink = "",
   onLinkChange,
 }: SurveyLinkSectionProps) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
 
   const handleCopy = useCallback(async () => {
+    if (!surveyLink) return;
     try {
       await navigator.clipboard.writeText(surveyLink);
       setCopyStatus("copied");
@@ -35,7 +34,7 @@ export default function SurveyLinkSection({
         <input
           type="text"
           readOnly
-          value={surveyLink}
+          value={surveyLink || "Generating link..."}
           className="flex-1 min-w-0 px-4 py-3 text-sm text-[#4a4d52] bg-[#f0f0f0] border border-gray-200 rounded-lg focus:outline-none"
           aria-label="Survey link"
         />
@@ -48,7 +47,8 @@ export default function SurveyLinkSection({
         <button
           type="button"
           onClick={handleCopy}
-          className="relative px-4 py-2.5 rounded-lg bg-[#4a9b6e] text-white text-sm font-medium hover:opacity-95 shrink-0"
+          disabled={!surveyLink}
+          className="relative px-4 py-2.5 rounded-lg bg-[#4a9b6e] text-white text-sm font-medium hover:opacity-95 shrink-0 disabled:opacity-50"
         >
           {copyStatus === "copied" ? "Copied!" : "Copy"}
           {copyStatus === "copied" && (

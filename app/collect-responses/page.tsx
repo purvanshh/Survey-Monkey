@@ -5,14 +5,51 @@ import WorkflowStepper from "@/components/WorkflowStepper";
 import SurveyLinkSection from "@/components/collect-responses/SurveyLinkSection";
 import BuyTargetedResponsesCard from "@/components/collect-responses/BuyTargetedResponsesCard";
 import MoreWaysToSendGrid from "@/components/collect-responses/MoreWaysToSendGrid";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getSurvey, generateShareLink } from "@/lib/surveyApi";
 
-const MOCK_SURVEY_LINK = "https://www.surveymonkey.com/r/L6C6XCL";
-const DEFAULT_SURVEY_NAME = "Untitled";
+const SURVEY_ID_KEY = "current-survey-id";
 
 export default function CollectResponsesPage() {
-  const [surveyLink, setSurveyLink] = useState(MOCK_SURVEY_LINK);
-  const [surveyName, setSurveyName] = useState(DEFAULT_SURVEY_NAME);
+  const [surveyLink, setSurveyLink] = useState<string>("");
+  const [surveyName, setSurveyName] = useState("Untitled");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function init() {
+      try {
+        const surveyId = localStorage.getItem(SURVEY_ID_KEY);
+        if (!surveyId) {
+          setError("No survey found. Please create a survey first.");
+          setLoading(false);
+          return;
+        }
+
+        // Load survey from DB
+        const survey = await getSurvey(surveyId);
+        if (cancelled) return;
+        setSurveyName(survey.title);
+
+        // Generate (or reuse) share link
+        const shareData = await generateShareLink(surveyId);
+        if (cancelled) return;
+        setSurveyLink(shareData.share_url);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load survey:", err);
+          setError("Failed to load survey. Make sure the backend is running.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    init();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -23,7 +60,7 @@ export default function CollectResponsesPage() {
             type="text"
             value={surveyName}
             onChange={(e) => setSurveyName(e.target.value)}
-            placeholder={DEFAULT_SURVEY_NAME}
+            placeholder="Untitled"
             className="text-xl font-bold text-[#282a2e] bg-transparent border-none outline-none focus:ring-0 p-0 min-w-0 max-w-full placeholder:text-gray-400"
             aria-label="Survey name"
           />
@@ -42,19 +79,36 @@ export default function CollectResponsesPage() {
       <main className="flex-1 flex flex-col min-w-0 overflow-auto bg-[#f5f6f7]">
         <div className="flex-1 p-6">
           <div className="max-w-6xl mx-auto space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <SurveyLinkSection
-                  surveyLink={surveyLink}
-                  onLinkChange={setSurveyLink}
-                />
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="flex items-center gap-3 text-[#6b7280]">
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span className="text-sm">Loading survey...</span>
+                </div>
               </div>
-              <div className="lg:col-span-1">
-                <BuyTargetedResponsesCard />
+            ) : error ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+                {error}
               </div>
-            </div>
-
-            <MoreWaysToSendGrid />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2">
+                    <SurveyLinkSection
+                      surveyLink={surveyLink}
+                      onLinkChange={setSurveyLink}
+                    />
+                  </div>
+                  <div className="lg:col-span-1">
+                    <BuyTargetedResponsesCard />
+                  </div>
+                </div>
+                <MoreWaysToSendGrid />
+              </>
+            )}
           </div>
         </div>
       </main>

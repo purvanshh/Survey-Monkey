@@ -6,13 +6,35 @@ import Sidebar from "@/components/Sidebar";
 import SurveyCanvas from "@/components/SurveyCanvas";
 import ActionButtons from "@/components/ActionButtons";
 import { DEFAULT_THEME_ID, type ThemeId } from "@/constants/themes";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { SurveyQuestion, SavedQuestionData } from "@/types/survey";
 import QuestionBankModal from "@/components/QuestionBankModal";
+import {
+  createSurvey,
+  getSurvey,
+  updateSurvey,
+  addQuestion,
+  updateQuestion,
+} from "@/lib/surveyApi";
 
 const DEFAULT_SURVEY_NAME = "Untitled";
+const SURVEY_ID_KEY = "current-survey-id";
 const PREVIEW_STORAGE_KEY = "survey-preview-data";
+
+/** Map frontend question type labels → backend type strings */
+function toBackendType(feType: string): string {
+  const MAP: Record<string, string> = {
+    "Multiple choice": "multiple_choice",
+    "Checkboxes": "checkbox",
+    "Single text box": "text",
+    "Star rating": "star_rating",
+    "Matrix / Rating scale": "matrix",
+    "Slider": "slider",
+    "Ranking": "ranking",
+  };
+  return MAP[feType] ?? "text";
+}
 
 function setPreviewData(surveyName: string, questions: SurveyQuestion[]) {
   if (typeof window === "undefined") return;
@@ -42,15 +64,172 @@ export default function SurveyBuilderPage() {
   const [logicPanelOpen, setLogicPanelOpen] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(DEFAULT_THEME_ID);
   const [questionBankModalCategory, setQuestionBankModalCategory] = useState<string | null>(null);
+  const [surveyId, setSurveyId] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleAddQuestionFromBank = useCallback((data: SavedQuestionData) => {
-    setQuestions((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), savedData: data },
-    ]);
-  }, []);
+  // Refs to avoid stale closures
+  const surveyIdRef = useRef<string | null>(null);
+  const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ---------------------------------------------------------------
+  // 1) On mount: create or load survey from DB
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+
+    async function init() {
+      try {
+        const storedId = localStorage.getItem(SURVEY_ID_KEY);
+
+        if (storedId) {
+          // Try loading existing survey
+          try {
+            const survey = await getSurvey(storedId);
+            if (cancelled) return;
+
+            setSurveyId(survey.id);
+            surveyIdRef.current = survey.id;
+            setSurveyName(survey.title);
+
+            // Hydrate questions from DB
+            if (survey.questions.length > 0) {
+              const hydrated: SurveyQuestion[] = survey.questions.map((q) => ({
+                id: q.id,
+                backendId: q.id,
+                savedData: {
+                  text: q.title,
+                  type: mapBackendTypeToFe(q.type),
+                  answerChoices: q.options.map((o) => o.label),
+                },
+              }));
+              setQuestions(hydrated);
+            }
+            return;
+          } catch {
+            // Survey not found, create new one
+            localStorage.removeItem(SURVEY_ID_KEY);
+          }
+        }
+
+        // Create fresh survey
+        const newSurvey = await createSurvey(DEFAULT_SURVEY_NAME);
+        if (cancelled) return;
+        setSurveyId(newSurvey.id);
+        surveyIdRef.current = newSurvey.id;
+        localStorage.setItem(SURVEY_ID_KEY, newSurvey.id);
+      } catch (err) {
+        console.error("Failed to init survey:", err);
+      }
+    }
+
+    init();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------------------------------------------------------------
+  // 2) Debounced title save
+  // ---------------------------------------------------------------
+  const handleSurveyNameChange = useCallback(
+    (name: string) => {
+      setSurveyName(name);
+      if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
+      titleTimerRef.current = setTimeout(() => {
+        const id = surveyIdRef.current;
+        if (id) {
+          updateSurvey(id, { title: name }).catch((e) =>
+            console.error("Title save failed:", e)
+          );
+        }
+      }, 600);
+    },
+    []
+  );
+
+  // ---------------------------------------------------------------
+  // 3) Persist question on save (from QuestionBlock onSave callback)
+  // ---------------------------------------------------------------
+  const handleQuestionsChange = useCallback(
+    async (newQuestions: SurveyQuestion[]) => {
+      setQuestions(newQuestions);
+
+      const id = surveyIdRef.current;
+      if (!id) return;
+
+      // Find questions that were just saved (have savedData but no backendId)
+      for (const q of newQuestions) {
+        if (q.savedData && !q.backendId) {
+          try {
+            const result = await addQuestion(id, {
+              type: toBackendType(q.savedData.type),
+              title: q.savedData.text,
+              options: q.savedData.answerChoices
+                .filter((c) => c.trim())
+                .map((label, i) => ({ label, order_index: i })),
+            });
+            // Update the question with its backend ID
+            setQuestions((prev) =>
+              prev.map((pq) =>
+                pq.id === q.id ? { ...pq, backendId: result.id } : pq
+              )
+            );
+          } catch (e) {
+            console.error("Failed to save question:", e);
+          }
+        } else if (q.savedData && q.backendId) {
+          // Update existing question
+          try {
+            await updateQuestion(q.backendId, {
+              type: toBackendType(q.savedData.type),
+              title: q.savedData.text,
+              options: q.savedData.answerChoices
+                .filter((c) => c.trim())
+                .map((label, i) => ({ label, order_index: i })),
+            });
+          } catch (e) {
+            console.error("Failed to update question:", e);
+          }
+        }
+      }
+    },
+    []
+  );
+
+  // ---------------------------------------------------------------
+  // 4) Question bank handler
+  // ---------------------------------------------------------------
+  const handleAddQuestionFromBank = useCallback(
+    (data: SavedQuestionData) => {
+      const newQ: SurveyQuestion = { id: crypto.randomUUID(), savedData: data };
+      setQuestions((prev) => {
+        const next = [...prev, newQ];
+        // Persist the bank question
+        const id = surveyIdRef.current;
+        if (id && data.text.trim()) {
+          addQuestion(id, {
+            type: toBackendType(data.type),
+            title: data.text,
+            options: data.answerChoices
+              .filter((c) => c.trim())
+              .map((label, i) => ({ label, order_index: i })),
+          })
+            .then((result) => {
+              setQuestions((q) =>
+                q.map((qq) =>
+                  qq.id === newQ.id ? { ...qq, backendId: result.id } : qq
+                )
+              );
+            })
+            .catch((e) => console.error("Failed to persist bank question:", e));
+        }
+        return next;
+      });
+    },
+    []
+  );
+
+  // ---------------------------------------------------------------
+  // 5) Preview handler
+  // ---------------------------------------------------------------
   const handlePreview = useCallback(() => {
     if (typeof window === "undefined") return;
     setPreviewData(surveyName, questions);
@@ -76,7 +255,7 @@ export default function SurveyBuilderPage() {
           <input
             type="text"
             value={surveyName}
-            onChange={(e) => setSurveyName(e.target.value)}
+            onChange={(e) => handleSurveyNameChange(e.target.value)}
             placeholder={DEFAULT_SURVEY_NAME}
             className="text-lg font-semibold text-[#3d4146] bg-transparent border-none outline-none focus:ring-0 p-0 min-w-0 flex-1 placeholder:text-[#9ca3af] h-8 leading-8"
             aria-label="Survey name"
@@ -103,11 +282,10 @@ export default function SurveyBuilderPage() {
               key={tab.id}
               type="button"
               onClick={() => handleDesignTabClick(tab.id)}
-              className={`flex items-center gap-1 py-2.5 px-2.5 text-xs font-medium shrink-0 border-b-2 -mb-px transition-colors ${
-                activeTab === tab.id
+              className={`flex items-center gap-1 py-2.5 px-2.5 text-xs font-medium shrink-0 border-b-2 -mb-px transition-colors ${activeTab === tab.id
                   ? "text-[#4a9b6e] border-[#4a9b6e] bg-[#f8faf8]"
                   : "text-[#6b7280] border-transparent hover:bg-[#f2f3f5] hover:text-[#3d4146]"
-              }`}
+                }`}
             >
               {tab.icon === "plus" && <span className="text-sm leading-none">+</span>}
               {tab.icon === "pen" && (
@@ -156,10 +334,10 @@ export default function SurveyBuilderPage() {
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <SurveyCanvas
             surveyName={surveyName}
-            onSurveyNameChange={setSurveyName}
+            onSurveyNameChange={handleSurveyNameChange}
             themeId={selectedThemeId}
             questions={questions}
-            onQuestionsChange={setQuestions}
+            onQuestionsChange={handleQuestionsChange}
           />
           <div className="bg-white border-t border-[#e5e7e9] px-6 py-2.5 flex items-center justify-between">
             <div className="flex-1" />
@@ -192,4 +370,18 @@ export default function SurveyBuilderPage() {
       </div>
     </div>
   );
+}
+
+/** Map backend type strings → frontend label */
+function mapBackendTypeToFe(backendType: string): string {
+  const MAP: Record<string, string> = {
+    multiple_choice: "Multiple choice",
+    checkbox: "Checkboxes",
+    text: "Single text box",
+    star_rating: "Star rating",
+    matrix: "Matrix / Rating scale",
+    slider: "Slider",
+    ranking: "Ranking",
+  };
+  return MAP[backendType] ?? "Multiple choice";
 }
