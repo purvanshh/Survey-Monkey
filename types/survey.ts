@@ -85,3 +85,29 @@ export interface ApiResponseCount {
   count: number;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Response / Answer viewer types                                     */
+/* ------------------------------------------------------------------ */
+
+export interface ApiAnswer {
+  id: string;
+  question_id: string;
+  answer_text: string | null;
+  selected_option_id: string | null;
+  value_json: unknown;
+}
+
+export interface ApiResponseEntry {
+  id: string;
+  respondent_id: string | null;
+  submitted_at: string;
+  metadata_: Record<string, unknown> | null;
+  answers: ApiAnswer[];
+}
+
+export interface ApiResponseList {
+  survey_id: string;
+  total: number;
+  responses: ApiResponseEntry[];
+}
+

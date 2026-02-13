@@ -15,6 +15,7 @@ import type {
   ApiCollectorList,
   ApiResponseCount,
   ApiCollector,
+  ApiResponseList,
 } from "@/types/survey";
 
 /* ------------------------------------------------------------------ */
@@ -39,6 +40,12 @@ export async function updateSurvey(
   return apiRequest<ApiSurvey>(`/api/surveys/${surveyId}`, {
     method: "PATCH",
     body: data,
+  });
+}
+
+export async function deleteSurvey(surveyId: string): Promise<void> {
+  return apiRequest<void>(`/api/surveys/${surveyId}`, {
+    method: "DELETE",
   });
 }
 
@@ -151,6 +158,18 @@ export async function getResponseCount(
 ): Promise<ApiResponseCount> {
   return apiRequest<ApiResponseCount>(
     `/api/surveys/${surveyId}/responses/count`
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Responses (creator analytics)                                      */
+/* ------------------------------------------------------------------ */
+
+export async function getResponses(
+  surveyId: string
+): Promise<ApiResponseList> {
+  return apiRequest<ApiResponseList>(
+    `/api/surveys/${surveyId}/responses`
   );
 }
 
