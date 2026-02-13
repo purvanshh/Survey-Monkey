@@ -2,20 +2,31 @@
 
 import TopNavbar from "@/components/TopNavbar";
 import WorkflowStepper from "@/components/WorkflowStepper";
-import SurveyLinkSection from "@/components/collect-responses/SurveyLinkSection";
-import BuyTargetedResponsesCard from "@/components/collect-responses/BuyTargetedResponsesCard";
-import MoreWaysToSendGrid from "@/components/collect-responses/MoreWaysToSendGrid";
-import { useState, useEffect } from "react";
-import { getSurvey, generateShareLink } from "@/lib/surveyApi";
+import CollectorsDashboard from "@/components/collect-responses/CollectorsDashboard";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  getSurvey,
+  generateCollectorLink,
+  getCollectors,
+  getResponseCount,
+} from "@/lib/surveyApi";
+import type { ApiCollector } from "@/types/survey";
 
 const SURVEY_ID_KEY = "current-survey-id";
+const POLL_INTERVAL_MS = 5000;
 
 export default function CollectResponsesPage() {
-  const [surveyLink, setSurveyLink] = useState<string>("");
   const [surveyName, setSurveyName] = useState("Untitled");
+  const [collectors, setCollectors] = useState<ApiCollector[]>([]);
+  const [totalResponses, setTotalResponses] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const surveyIdRef = useRef<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ---------------------------------------------------------------
+  // Init: generate link + load collectors
+  // ---------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -27,19 +38,25 @@ export default function CollectResponsesPage() {
           setLoading(false);
           return;
         }
+        surveyIdRef.current = surveyId;
 
-        // Load survey from DB
+        // Load survey name
         const survey = await getSurvey(surveyId);
         if (cancelled) return;
         setSurveyName(survey.title);
 
-        // Generate (or reuse) share link
-        const shareData = await generateShareLink(surveyId);
+        // Ensure a web-link collector exists
+        await generateCollectorLink(surveyId);
         if (cancelled) return;
-        setSurveyLink(shareData.share_url);
+
+        // Load collectors from DB
+        const data = await getCollectors(surveyId);
+        if (cancelled) return;
+        setCollectors(data.collectors);
+        setTotalResponses(data.total_responses);
       } catch (err) {
         if (!cancelled) {
-          console.error("Failed to load survey:", err);
+          console.error("Failed to load collectors:", err);
           setError("Failed to load survey. Make sure the backend is running.");
         }
       } finally {
@@ -48,7 +65,47 @@ export default function CollectResponsesPage() {
     }
 
     init();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ---------------------------------------------------------------
+  // Poll response count every 5s
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    if (!surveyIdRef.current) return;
+
+    pollRef.current = setInterval(async () => {
+      const sid = surveyIdRef.current;
+      if (!sid) return;
+      try {
+        const { count } = await getResponseCount(sid);
+        setTotalResponses(count);
+        // Update collector row count too
+        setCollectors((prev) =>
+          prev.map((c) => ({ ...c, responses: count }))
+        );
+      } catch {
+        // Silently ignore polling errors
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [loading]); // start polling after initial load is done
+
+  const handleRefresh = useCallback(async () => {
+    const sid = surveyIdRef.current;
+    if (!sid) return;
+    try {
+      const data = await getCollectors(sid);
+      setCollectors(data.collectors);
+      setTotalResponses(data.total_responses);
+    } catch (err) {
+      console.error("Refresh failed:", err);
+    }
   }, []);
 
   return (
@@ -69,8 +126,18 @@ export default function CollectResponsesPage() {
             className="w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 shrink-0"
             aria-label="Add collaborators"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              />
             </svg>
           </button>
         </div>
@@ -78,15 +145,30 @@ export default function CollectResponsesPage() {
       <WorkflowStepper activeStep={3} />
       <main className="flex-1 flex flex-col min-w-0 overflow-auto bg-[#f5f6f7]">
         <div className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto space-y-8">
+          <div className="max-w-6xl mx-auto">
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="flex items-center gap-3 text-[#6b7280]">
-                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <svg
+                    className="w-5 h-5 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
-                  <span className="text-sm">Loading survey...</span>
+                  <span className="text-sm">Loading collectors...</span>
                 </div>
               </div>
             ) : error ? (
@@ -94,26 +176,20 @@ export default function CollectResponsesPage() {
                 {error}
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-2">
-                    <SurveyLinkSection
-                      surveyLink={surveyLink}
-                      onLinkChange={setSurveyLink}
-                    />
-                  </div>
-                  <div className="lg:col-span-1">
-                    <BuyTargetedResponsesCard />
-                  </div>
-                </div>
-                <MoreWaysToSendGrid />
-              </>
+              <CollectorsDashboard
+                collectors={collectors}
+                totalResponses={totalResponses}
+                onRefresh={handleRefresh}
+              />
             )}
           </div>
         </div>
       </main>
 
-      <div className="fixed right-0 top-1/2 -translate-y-1/2 z-30" style={{ writingMode: "vertical-rl" }}>
+      <div
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-30"
+        style={{ writingMode: "vertical-rl" }}
+      >
         <button
           type="button"
           className="py-2 px-2 bg-[#4a4d52] text-white text-xs font-medium rounded-l-md shadow-md hover:bg-[#374151]"

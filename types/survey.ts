@@ -66,3 +66,22 @@ export interface ApiSubmitResponse {
     value_json: unknown;
   }[];
 }
+
+export interface ApiCollector {
+  collector_name: string;
+  share_url: string;
+  status: string;
+  responses: number;
+  date_modified: string;
+}
+
+export interface ApiCollectorList {
+  collectors: ApiCollector[];
+  total_responses: number;
+}
+
+export interface ApiResponseCount {
+  survey_id: string;
+  count: number;
+}
+

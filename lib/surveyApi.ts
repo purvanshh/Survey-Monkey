@@ -142,3 +142,39 @@ export async function submitSurveyResponse(
         }),
     });
 }
+
+/* ------------------------------------------------------------------ */
+/*  Collectors                                                         */
+/* ------------------------------------------------------------------ */
+
+import type {
+    ApiCollectorList,
+    ApiResponseCount,
+    ApiCollector,
+} from "@/types/survey";
+
+export async function generateCollectorLink(
+    surveyId: string
+): Promise<ApiCollector> {
+    return request<ApiCollector>(
+        `${API_BASE}/api/surveys/${surveyId}/generate-link`,
+        { method: "POST" }
+    );
+}
+
+export async function getCollectors(
+    surveyId: string
+): Promise<ApiCollectorList> {
+    return request<ApiCollectorList>(
+        `${API_BASE}/api/surveys/${surveyId}/collectors`
+    );
+}
+
+export async function getResponseCount(
+    surveyId: string
+): Promise<ApiResponseCount> {
+    return request<ApiResponseCount>(
+        `${API_BASE}/api/surveys/${surveyId}/responses/count`
+    );
+}
+
