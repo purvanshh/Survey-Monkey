@@ -11,6 +11,7 @@ interface SurveyCanvasProps {
   themeId?: ThemeId;
   questions?: SurveyQuestion[];
   onQuestionsChange?: (questions: SurveyQuestion[]) => void;
+  onDeleteQuestion?: (questionId: string) => void;
 }
 
 export default function SurveyCanvas({
@@ -19,6 +20,7 @@ export default function SurveyCanvas({
   themeId = DEFAULT_THEME_ID,
   questions: questionsProp = [],
   onQuestionsChange,
+  onDeleteQuestion,
 }: SurveyCanvasProps) {
   const theme = STANDARD_THEMES.find((t) => t.id === themeId) ?? STANDARD_THEMES.find((t) => t.id === DEFAULT_THEME_ID)!;
   const canvasClass = theme.canvasClass;
@@ -106,6 +108,7 @@ export default function SurveyCanvas({
                             questionNumber={index + 1}
                             savedData={q.savedData}
                             onSave={(data) => handleSaveQuestion(index, data)}
+                            onDelete={() => onDeleteQuestion?.(q.id)}
                           />
                         </div>
                       </div>

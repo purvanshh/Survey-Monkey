@@ -1,6 +1,18 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
+const SURVEY_ID_KEY = "current-survey-id";
+
 export default function TopNavbar() {
+  const router = useRouter();
+
+  const handleCreateSurvey = () => {
+    // Clear old survey so the builder creates a fresh one
+    localStorage.removeItem(SURVEY_ID_KEY);
+    router.push("/survey-builder");
+  };
+
   return (
     <header className="h-14 min-h-[56px] bg-[#2d3238] flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-6">
@@ -22,7 +34,7 @@ export default function TopNavbar() {
         <button type="button" className="h-8 px-3 rounded bg-[#f0c14b] text-[#1e1e1e] text-sm font-medium hover:opacity-92">
           Upgrade
         </button>
-        <button type="button" className="h-8 px-3 rounded bg-white text-[#4a4d52] text-sm font-medium border border-[#c8cbce] hover:bg-gray-50">
+        <button type="button" onClick={handleCreateSurvey} className="h-8 px-3 rounded bg-white text-[#4a4d52] text-sm font-medium border border-[#c8cbce] hover:bg-gray-50">
           Create survey
         </button>
         <button type="button" className="p-1.5 text-[#b0b4b8] hover:text-white" aria-label="Notifications">

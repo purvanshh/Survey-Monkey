@@ -13,6 +13,7 @@ export interface QuestionBlockProps {
   questionNumber?: number;
   savedData?: SavedQuestionData | null;
   onSave?: (data: SavedQuestionData) => void;
+  onDelete?: () => void;
 }
 const DEBOUNCE_MS = 400;
 
@@ -73,7 +74,7 @@ function FormattingToolbar() {
   );
 }
 
-export default function QuestionBlock({ questionNumber = 1, savedData = null, onSave }: QuestionBlockProps) {
+export default function QuestionBlock({ questionNumber = 1, savedData = null, onSave, onDelete }: QuestionBlockProps) {
   const [questionTypeOpen, setQuestionTypeOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [question, setQuestion] = useState(savedData?.text ?? "");
@@ -226,7 +227,7 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
           <button type="button" className="flex items-center gap-1.5 h-8 px-2.5 rounded-[6px] bg-[#facc15] text-[#3d4146] text-sm font-medium hover:bg-[#eab308]">
             Library
           </button>
-          <button type="button" className="h-8 w-8 rounded-[6px] border border-[#d1d5da] bg-white text-[#6b7280] hover:bg-[#f9fafb] flex items-center justify-center" aria-label="Delete">
+          <button type="button" onClick={onDelete} className="h-8 w-8 rounded-[6px] border border-[#d1d5da] bg-white text-[#6b7280] hover:bg-red-50 hover:text-red-500 hover:border-red-300 flex items-center justify-center" aria-label="Delete">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
           </button>
         </div>
@@ -259,7 +260,7 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
               <button type="button" className="p-1.5 rounded text-[#6b7280] hover:bg-[#f2f3f5] hover:text-[#3d4146]" aria-label="Format">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
               </button>
-              <button type="button" className="p-1.5 rounded text-[#6b7280] hover:bg-[#f2f3f5] hover:text-[#3d4146]" aria-label="Delete">
+              <button type="button" onClick={onDelete} className="p-1.5 rounded text-[#6b7280] hover:bg-red-50 hover:text-red-500" aria-label="Delete">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
               <button type="button" className="p-1.5 rounded text-[#6b7280] hover:bg-[#f2f3f5] hover:text-[#3d4146]" aria-label="Copy">

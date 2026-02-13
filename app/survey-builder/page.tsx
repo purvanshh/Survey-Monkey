@@ -16,6 +16,7 @@ import {
   updateSurvey,
   addQuestion,
   updateQuestion,
+  deleteQuestion,
 } from "@/lib/surveyApi";
 
 const DEFAULT_SURVEY_NAME = "Untitled";
@@ -238,7 +239,30 @@ export default function SurveyBuilderPage() {
   );
 
   // ---------------------------------------------------------------
-  // 5) Flush pending saves before navigation
+  // 5) Delete question
+  // ---------------------------------------------------------------
+  const handleDeleteQuestion = useCallback(
+    async (questionId: string) => {
+      setQuestions((prev) => {
+        const toDelete = prev.find((q) => q.id === questionId);
+        // Delete from backend if it has a backendId
+        if (toDelete?.backendId) {
+          deleteQuestion(toDelete.backendId).catch((e) =>
+            console.error("Failed to delete question:", e)
+          );
+        }
+        const filtered = prev.filter((q) => q.id !== questionId);
+        // Always keep at least one empty question block
+        return filtered.length > 0
+          ? filtered
+          : [{ id: crypto.randomUUID(), savedData: null }];
+      });
+    },
+    []
+  );
+
+  // ---------------------------------------------------------------
+  // 6) Flush pending saves before navigation
   // ---------------------------------------------------------------
   const flushPendingSaves = useCallback(async () => {
     // Flush debounced title save immediately
@@ -369,6 +393,7 @@ export default function SurveyBuilderPage() {
             themeId={selectedThemeId}
             questions={questions}
             onQuestionsChange={handleQuestionsChange}
+            onDeleteQuestion={handleDeleteQuestion}
           />
           <div className="bg-white border-t border-[#e5e7e9] px-6 py-2.5 flex items-center justify-between">
             <div className="flex-1" />
