@@ -5,6 +5,7 @@ import ThemeCard from "./ThemeCard";
 import { QuestionTypeIcon } from "./QuestionTypeIcons";
 import { QUESTION_TYPES } from "@/constants/questionTypes";
 import { STANDARD_THEMES, type ThemeId } from "@/constants/themes";
+import { QUESTION_BANK_CATEGORIES } from "@/data/questionBank";
 
 export type SidebarTabId = "build" | "style" | "logic" | "question-bank";
 
@@ -18,26 +19,9 @@ export interface SidebarProps {
   logicPanelOpen: boolean;
   selectedThemeId?: ThemeId;
   onThemeChange?: (themeId: ThemeId) => void;
+  onQuestionBankCategorySelect?: (category: string) => void;
 }
 
-const QUESTION_BANK_CATEGORIES = [
-  "Recommended Questions",
-  "Previously Used Questions",
-  "All Categories",
-  "Community",
-  "Customer Feedback",
-  "Customer Satisfaction",
-  "Demographics",
-  "Education",
-  "Events",
-  "Healthcare",
-  "Human Resources",
-  "Industry Specific",
-  "Just for Fun",
-  "Market Research",
-  "Non-Profit",
-  "Political",
-];
 
 const LOGIC_FEATURES = [
   { label: "Page skip logic", icon: "headphone" },
@@ -88,7 +72,7 @@ function BuildPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-function QuestionBankPanel({ onClose }: { onClose: () => void }) {
+function QuestionBankPanel({ onClose, onCategorySelect }: { onClose: () => void; onCategorySelect?: (category: string) => void }) {
   return (
     <div className="flex flex-col h-full w-full bg-white overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -119,6 +103,7 @@ function QuestionBankPanel({ onClose }: { onClose: () => void }) {
           <button
             key={category}
             type="button"
+            onClick={() => onCategorySelect?.(category)}
             className="w-full flex items-center justify-between px-4 py-2.5 text-left text-sm text-[#282a2e] hover:bg-gray-50 border-b border-gray-100 last:border-0"
           >
             <span>{category}</span>
@@ -182,6 +167,7 @@ export default function Sidebar({
   logicPanelOpen,
   selectedThemeId,
   onThemeChange,
+  onQuestionBankCategorySelect,
 }: SidebarProps) {
   const [styleSubTab, setStyleSubTab] = useState<"settings" | "themes">("themes");
 
@@ -189,7 +175,7 @@ export default function Sidebar({
   const isBuildPanelOpen = activeTab === "build" && buildPanelOpen;
   const isQuestionBankPanelOpen = activeTab === "question-bank" && questionBankPanelOpen;
   const isLogicPanelOpen = activeTab === "logic" && logicPanelOpen;
-  const sidebarWidth = isStylePanelOpen ? 320 : isBuildPanelOpen || isLogicPanelOpen || isQuestionBankPanelOpen ? 280 : 0;
+  const sidebarWidth = isStylePanelOpen || isBuildPanelOpen || isLogicPanelOpen || isQuestionBankPanelOpen ? 320 : 0;
 
   const closePanel = () => onTabChange("style");
 
@@ -208,7 +194,7 @@ export default function Sidebar({
 
       {isQuestionBankPanelOpen && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <QuestionBankPanel onClose={closePanel} />
+          <QuestionBankPanel onClose={closePanel} onCategorySelect={onQuestionBankCategorySelect} />
         </div>
       )}
 

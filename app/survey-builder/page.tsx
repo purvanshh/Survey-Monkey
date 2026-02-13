@@ -8,7 +8,8 @@ import ActionButtons from "@/components/ActionButtons";
 import { DEFAULT_THEME_ID, type ThemeId } from "@/constants/themes";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { SurveyQuestion } from "@/types/survey";
+import type { SurveyQuestion, SavedQuestionData } from "@/types/survey";
+import QuestionBankModal from "@/components/QuestionBankModal";
 
 const DEFAULT_SURVEY_NAME = "Untitled";
 const PREVIEW_STORAGE_KEY = "survey-preview-data";
@@ -40,7 +41,15 @@ export default function SurveyBuilderPage() {
   const [questionBankPanelOpen, setQuestionBankPanelOpen] = useState(false);
   const [logicPanelOpen, setLogicPanelOpen] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(DEFAULT_THEME_ID);
+  const [questionBankModalCategory, setQuestionBankModalCategory] = useState<string | null>(null);
   const router = useRouter();
+
+  const handleAddQuestionFromBank = useCallback((data: SavedQuestionData) => {
+    setQuestions((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), savedData: data },
+    ]);
+  }, []);
 
   const handlePreview = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -142,6 +151,7 @@ export default function SurveyBuilderPage() {
           logicPanelOpen={logicPanelOpen}
           selectedThemeId={selectedThemeId}
           onThemeChange={setSelectedThemeId}
+          onQuestionBankCategorySelect={(category) => setQuestionBankModalCategory(category)}
         />
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <SurveyCanvas
@@ -167,6 +177,14 @@ export default function SurveyBuilderPage() {
           </div>
         </main>
       </div>
+      {questionBankModalCategory && (
+        <QuestionBankModal
+          category={questionBankModalCategory}
+          onClose={() => setQuestionBankModalCategory(null)}
+          onAddQuestion={handleAddQuestionFromBank}
+        />
+      )}
+
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-30" style={{ writingMode: "vertical-rl" }}>
         <button type="button" className="py-2 px-2 bg-[#4a4d52] text-white text-xs font-medium rounded-l-md shadow-md hover:bg-[#374151]">
           Feedback!

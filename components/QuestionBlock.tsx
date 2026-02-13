@@ -173,9 +173,9 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
   if (showSavedView) {
     const isChoiceType = savedData!.type === "Multiple choice" || savedData!.type === "Checkboxes";
     return (
-      <div className="bg-white border border-[#e5e7e9] rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4">
-          <p className="text-base font-medium text-[#282a2e] mb-3">
+      <div className="bg-white border border-[#e5e7e9] rounded-xl shadow-sm overflow-hidden h-[180px] flex flex-col">
+        <div className="p-4 flex-1 min-h-0 overflow-y-auto flex flex-col">
+          <p className="text-base font-medium text-[#282a2e] mb-3 line-clamp-2 break-words shrink-0">
             {questionNumber}. {savedData!.text}
           </p>
           {isChoiceType && savedData!.answerChoices?.length > 0 ? (
@@ -187,7 +187,7 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
                   ) : (
                     <span className="w-4 h-4 rounded-full border-2 border-[#d1d5da] bg-white shrink-0" />
                   )}
-                  <span className="text-sm text-[#3d4146]">{choice || "(Empty choice)"}</span>
+                  <span className="text-sm text-[#3d4146] truncate">{choice || "(Empty choice)"}</span>
                 </li>
               ))}
             </ul>
@@ -196,7 +196,7 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
               type="text"
               readOnly
               placeholder="Enter your answer"
-              className="w-full py-2.5 px-3 text-sm border border-[#d1d5da] rounded-lg bg-[#f9fafb] text-[#3d4146] placeholder:text-[#9ca3af]"
+              className="w-full py-2.5 px-3 text-sm border border-[#d1d5da] rounded-lg bg-[#f9fafb] text-[#3d4146] placeholder:text-[#9ca3af] shrink-0"
             />
           )}
         </div>
