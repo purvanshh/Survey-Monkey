@@ -6,9 +6,23 @@ import Sidebar from "@/components/Sidebar";
 import SurveyCanvas from "@/components/SurveyCanvas";
 import ActionButtons from "@/components/ActionButtons";
 import { DEFAULT_THEME_ID, type ThemeId } from "@/constants/themes";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import type { SurveyQuestion } from "@/types/survey";
 
 const DEFAULT_SURVEY_NAME = "Untitled";
+const PREVIEW_STORAGE_KEY = "survey-preview-data";
+
+function setPreviewData(surveyName: string, questions: SurveyQuestion[]) {
+  if (typeof window === "undefined") return;
+  const payload = {
+    surveyName,
+    questions: questions
+      .filter((q) => q.savedData?.text?.trim())
+      .map((q) => ({ id: q.id, ...q.savedData })),
+  };
+  window.localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(payload));
+}
 
 const DESIGN_TABS = [
   { id: "build", label: "Build", icon: "plus" },
@@ -19,12 +33,23 @@ const DESIGN_TABS = [
 
 export default function SurveyBuilderPage() {
   const [surveyName, setSurveyName] = useState(DEFAULT_SURVEY_NAME);
+  const [questions, setQuestions] = useState<SurveyQuestion[]>([{ id: "1", savedData: null }]);
   const [activeTab, setActiveTab] = useState<string>("style");
   const [stylePanelOpen, setStylePanelOpen] = useState(true);
   const [buildPanelOpen, setBuildPanelOpen] = useState(false);
   const [questionBankPanelOpen, setQuestionBankPanelOpen] = useState(false);
   const [logicPanelOpen, setLogicPanelOpen] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(DEFAULT_THEME_ID);
+  const router = useRouter();
+
+  const handlePreview = useCallback(() => {
+    if (typeof window === "undefined") return;
+    setPreviewData(surveyName, questions);
+    const newWindow = window.open("/preview", "_blank", "noopener,noreferrer");
+    if (!newWindow) {
+      router.push("/preview");
+    }
+  }, [surveyName, questions, router]);
 
   const handleDesignTabClick = (tabId: string) => {
     setActiveTab(tabId);
@@ -61,7 +86,7 @@ export default function SurveyBuilderPage() {
           </div>
         </div>
       </div>
-      <WorkflowStepper />
+      <WorkflowStepper onPreviewClick={handlePreview} />
       <div className="bg-white border-b border-[#e5e7e9] px-6 py-0 flex items-center justify-between gap-2 flex-nowrap min-h-[40px]">
         <div className="flex items-center gap-0 flex-1 min-w-0">
           {DESIGN_TABS.map((tab) => (
@@ -119,14 +144,21 @@ export default function SurveyBuilderPage() {
           onThemeChange={setSelectedThemeId}
         />
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <SurveyCanvas surveyName={surveyName} onSurveyNameChange={setSurveyName} themeId={selectedThemeId} />
+          <SurveyCanvas
+            surveyName={surveyName}
+            onSurveyNameChange={setSurveyName}
+            themeId={selectedThemeId}
+            questions={questions}
+            onQuestionsChange={setQuestions}
+          />
           <div className="bg-white border-t border-[#e5e7e9] px-6 py-2.5 flex items-center justify-between">
             <div className="flex-1" />
             <ActionButtons />
             <div className="flex-1 flex justify-end">
               <button
                 type="button"
-                className="px-4 py-2.5 rounded-md bg-[#d3d3d3] text-white text-sm font-medium hover:bg-[#c0c0c0] flex items-center gap-2"
+                onClick={handlePreview}
+                className="px-4 py-2.5 rounded-md bg-[#4a9b6e] text-white text-sm font-medium hover:opacity-95 flex items-center gap-2"
               >
                 Preview survey
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>

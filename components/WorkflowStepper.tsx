@@ -22,9 +22,10 @@ const STEP_ROUTES: Record<WorkflowStepIndex, string> = {
 
 interface WorkflowStepperProps {
   activeStep?: WorkflowStepIndex;
+  onPreviewClick?: () => void;
 }
 
-export default function WorkflowStepper({ activeStep = 1 }: WorkflowStepperProps) {
+export default function WorkflowStepper({ activeStep = 1, onPreviewClick }: WorkflowStepperProps) {
   return (
     <div className="h-11 min-h-[44px] bg-[#f2f3f5] flex items-center justify-between px-6 border-b border-[#e5e7e9]">
       <nav className="flex items-center gap-1" aria-label="Survey workflow">
@@ -54,6 +55,7 @@ export default function WorkflowStepper({ activeStep = 1 }: WorkflowStepperProps
       </nav>
       <button
         type="button"
+        onClick={onPreviewClick}
         className="h-8 px-3 rounded-md bg-white text-[#4a4d52] text-sm font-medium border border-[#d1d5da] hover:bg-gray-50 flex items-center gap-1.5 shrink-0"
       >
         Preview survey
