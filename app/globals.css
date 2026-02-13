@@ -2,13 +2,16 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --header-bg: #282a2e;
-  --accent-green: #3aa666;
-  --accent-yellow: #fcc107;
-  --surface-muted: #e8e9eb;
-  --surface-canvas: #f5f6f7;
+  --foreground: #3d4146;
+  --header-bg: #2d3238;
+  --accent-green: #4a9b6e;
+  --accent-green-underline: 2px;
+  --accent-yellow: #f0c14b;
+  --surface-muted: #e6e8ea;
+  --surface-canvas: #f2f3f5;
   --brand-card: #e0f7fa;
+  --text-muted: #6b7280;
+  --border-subtle: #e5e7e9;
 }
 
 @theme inline {
@@ -20,4 +23,85 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Subtle geometric/grid pattern for survey canvas (match reference) */
+.canvas-pattern {
+  background-color: var(--surface-canvas);
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Theme canvas backgrounds – applied to the scrollable canvas wrapper */
+.theme-canvas-simple {
+  background-color: var(--surface-canvas);
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.theme-canvas-heritage {
+  background: linear-gradient(135deg, #0d5c2e 0%, #1a7d3e 50%, #228b45 100%);
+}
+
+.theme-canvas-full-color {
+  background-color: #0097a7;
+}
+
+.theme-canvas-highrise {
+  background-color: #e2e4e6;
+  background-image:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+}
+
+.theme-canvas-dewdrop {
+  background: linear-gradient(160deg, #7cb342 0%, #558b2f 40%, #33691e 100%);
+}
+
+.theme-canvas-pastel {
+  background-color: #94d0c5;
+}
+
+.theme-canvas-walnut {
+  background-color: #4e342e;
+  background-image:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.15) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+  background-size: 40px 4px;
+}
+
+.theme-canvas-stone {
+  background-color: #bdbdbd;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.4) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+.theme-canvas-porch-lights {
+  background-color: #0d0d0d;
+  background-image:
+    radial-gradient(ellipse 120px 120px at 15% 20%, rgba(255, 200, 100, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse 80px 80px at 85% 30%, rgba(255, 180, 80, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse 100px 100px at 50% 70%, rgba(255, 220, 120, 0.25) 0%, transparent 45%),
+    radial-gradient(ellipse 60px 60px at 70% 85%, rgba(255, 190, 90, 0.2) 0%, transparent 50%);
+}
+
+.theme-canvas-scribble {
+  background-color: #fafafa;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0, 0, 0, 0.02) 2px, rgba(0, 0, 0, 0.02) 4px);
+}
+
+.theme-canvas-arctic {
+  background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
 }

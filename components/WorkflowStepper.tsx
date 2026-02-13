@@ -26,26 +26,26 @@ interface WorkflowStepperProps {
 
 export default function WorkflowStepper({ activeStep = 1 }: WorkflowStepperProps) {
   return (
-    <div className="h-12 bg-[#f8f8f8] flex items-center justify-between px-6 border-b border-gray-200">
-      <nav className="flex items-center min-h-full" aria-label="Survey workflow">
+    <div className="h-11 min-h-[44px] bg-[#f2f3f5] flex items-center justify-between px-6 border-b border-[#e5e7e9]">
+      <nav className="flex items-center gap-1" aria-label="Survey workflow">
         {WORKFLOW_STEPS.map((label, i) => {
           const href = STEP_ROUTES[i as WorkflowStepIndex];
           const isActive = i === activeStep;
           return (
-            <div key={label} className="flex items-center min-h-full">
+            <div key={label} className="flex items-center">
               <Link
                 href={href}
-                className={`text-xs font-semibold tracking-wide py-3 block min-h-full flex items-center ${
+                className={`text-xs font-semibold tracking-wide py-2.5 px-1 flex items-center border-b-2 -mb-px ${
                   isActive
-                    ? "text-[#3aa666] border-b-2 border-[#3aa666] -mb-px"
-                    : "text-[#6b7280] hover:text-[#282a2e] hover:bg-gray-100/80"
+                    ? "text-[#4a9b6e] border-[#4a9b6e]"
+                    : "text-[#6b7280] border-transparent hover:text-[#3d4146]"
                 }`}
               >
                 {label}
               </Link>
               {i < WORKFLOW_STEPS.length - 1 && (
-                <span className="text-gray-400 text-sm mx-2 select-none" aria-hidden>
-                  →
+                <span className="text-[#a0a4a8] mx-2.5 select-none flex items-center" aria-hidden>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 </span>
               )}
             </div>
@@ -54,10 +54,10 @@ export default function WorkflowStepper({ activeStep = 1 }: WorkflowStepperProps
       </nav>
       <button
         type="button"
-        className="px-4 py-2 rounded-md bg-white text-[#4a4d52] text-sm font-medium border border-gray-300 hover:bg-gray-50 flex items-center gap-2"
+        className="h-8 px-3 rounded-md bg-white text-[#4a4d52] text-sm font-medium border border-[#d1d5da] hover:bg-gray-50 flex items-center gap-1.5 shrink-0"
       >
         Preview survey
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
       </button>
     </div>
   );

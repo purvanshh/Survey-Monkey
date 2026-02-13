@@ -8,9 +8,11 @@ import MoreWaysToSendGrid from "@/components/collect-responses/MoreWaysToSendGri
 import { useState } from "react";
 
 const MOCK_SURVEY_LINK = "https://www.surveymonkey.com/r/L6C6XCL";
+const DEFAULT_SURVEY_NAME = "Untitled";
 
 export default function CollectResponsesPage() {
   const [surveyLink, setSurveyLink] = useState(MOCK_SURVEY_LINK);
+  const [surveyName, setSurveyName] = useState(DEFAULT_SURVEY_NAME);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -19,7 +21,14 @@ export default function CollectResponsesPage() {
       <main className="flex-1 flex flex-col min-w-0 overflow-auto bg-[#f5f6f7]">
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-[#282a2e]">Untitled</h1>
+            <input
+              type="text"
+              value={surveyName}
+              onChange={(e) => setSurveyName(e.target.value)}
+              placeholder={DEFAULT_SURVEY_NAME}
+              className="text-xl font-bold text-[#282a2e] bg-transparent border-none outline-none focus:ring-0 p-0 min-w-0 max-w-full placeholder:text-gray-400"
+              aria-label="Survey name"
+            />
             <button
               type="button"
               className="w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 shrink-0"
