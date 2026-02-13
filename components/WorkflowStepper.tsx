@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
 
 export const WORKFLOW_STEPS = [
   "SUMMARY",
@@ -23,9 +24,34 @@ const STEP_ROUTES: Record<WorkflowStepIndex, string> = {
 interface WorkflowStepperProps {
   activeStep?: WorkflowStepIndex;
   onPreviewClick?: () => void;
+  /** Called before navigating away. Navigation waits for the returned promise to resolve. */
+  onBeforeNavigate?: () => Promise<void>;
 }
 
-export default function WorkflowStepper({ activeStep = 1, onPreviewClick }: WorkflowStepperProps) {
+export default function WorkflowStepper({ activeStep = 1, onPreviewClick, onBeforeNavigate }: WorkflowStepperProps) {
+  const router = useRouter();
+  const [navigating, setNavigating] = useState(false);
+
+  const handleStepClick = useCallback(
+    async (href: string) => {
+      if (navigating) return;
+      try {
+        setNavigating(true);
+        if (onBeforeNavigate) {
+          await onBeforeNavigate();
+        }
+        router.push(href);
+      } catch (err) {
+        console.error("Pre-navigation save failed:", err);
+        // Navigate anyway — partial data is better than being stuck
+        router.push(href);
+      } finally {
+        setNavigating(false);
+      }
+    },
+    [navigating, onBeforeNavigate, router]
+  );
+
   return (
     <div className="h-11 min-h-[44px] bg-[#f2f3f5] flex items-center justify-between px-6 border-b border-[#e5e7e9]">
       <nav className="flex items-center gap-1" aria-label="Survey workflow">
@@ -34,16 +60,18 @@ export default function WorkflowStepper({ activeStep = 1, onPreviewClick }: Work
           const isActive = i === activeStep;
           return (
             <div key={label} className="flex items-center">
-              <Link
-                href={href}
+              <button
+                type="button"
+                onClick={() => handleStepClick(href)}
+                disabled={navigating}
                 className={`text-xs font-semibold tracking-wide py-2.5 px-1 flex items-center border-b-2 -mb-px ${
                   isActive
                     ? "text-[#4a9b6e] border-[#4a9b6e]"
                     : "text-[#6b7280] border-transparent hover:text-[#3d4146]"
-                }`}
+                } ${navigating ? "opacity-50 cursor-wait" : ""}`}
               >
                 {label}
-              </Link>
+              </button>
               {i < WORKFLOW_STEPS.length - 1 && (
                 <span className="text-[#a0a4a8] mx-2.5 select-none flex items-center" aria-hidden>
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

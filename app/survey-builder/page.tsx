@@ -70,6 +70,8 @@ export default function SurveyBuilderPage() {
   // Refs to avoid stale closures
   const surveyIdRef = useRef<string | null>(null);
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Track in-flight save promises so we can await them before navigation */
+  const pendingSavesRef = useRef<Set<Promise<unknown>>>(new Set());
 
   // ---------------------------------------------------------------
   // 1) On mount: create or load survey from DB
@@ -158,36 +160,44 @@ export default function SurveyBuilderPage() {
       // Find questions that were just saved (have savedData but no backendId)
       for (const q of newQuestions) {
         if (q.savedData && !q.backendId) {
-          try {
-            const result = await addQuestion(id, {
-              type: toBackendType(q.savedData.type),
-              title: q.savedData.text,
-              options: q.savedData.answerChoices
-                .filter((c) => c.trim())
-                .map((label, i) => ({ label, order_index: i })),
+          const savePromise = addQuestion(id, {
+            type: toBackendType(q.savedData.type),
+            title: q.savedData.text,
+            options: q.savedData.answerChoices
+              .filter((c) => c.trim())
+              .map((label, i) => ({ label, order_index: i })),
+          })
+            .then((result) => {
+              setQuestions((prev) =>
+                prev.map((pq) =>
+                  pq.id === q.id ? { ...pq, backendId: result.id } : pq
+                )
+              );
+            })
+            .catch((e) => {
+              console.error("Failed to save question:", e);
+            })
+            .finally(() => {
+              pendingSavesRef.current.delete(savePromise);
             });
-            // Update the question with its backend ID
-            setQuestions((prev) =>
-              prev.map((pq) =>
-                pq.id === q.id ? { ...pq, backendId: result.id } : pq
-              )
-            );
-          } catch (e) {
-            console.error("Failed to save question:", e);
-          }
+          pendingSavesRef.current.add(savePromise);
+          await savePromise;
         } else if (q.savedData && q.backendId) {
-          // Update existing question
-          try {
-            await updateQuestion(q.backendId, {
-              type: toBackendType(q.savedData.type),
-              title: q.savedData.text,
-              options: q.savedData.answerChoices
-                .filter((c) => c.trim())
-                .map((label, i) => ({ label, order_index: i })),
+          const updatePromise = updateQuestion(q.backendId, {
+            type: toBackendType(q.savedData.type),
+            title: q.savedData.text,
+            options: q.savedData.answerChoices
+              .filter((c) => c.trim())
+              .map((label, i) => ({ label, order_index: i })),
+          })
+            .catch((e) => {
+              console.error("Failed to update question:", e);
+            })
+            .finally(() => {
+              pendingSavesRef.current.delete(updatePromise);
             });
-          } catch (e) {
-            console.error("Failed to update question:", e);
-          }
+          pendingSavesRef.current.add(updatePromise);
+          await updatePromise;
         }
       }
     },
@@ -228,7 +238,28 @@ export default function SurveyBuilderPage() {
   );
 
   // ---------------------------------------------------------------
-  // 5) Preview handler
+  // 5) Flush pending saves before navigation
+  // ---------------------------------------------------------------
+  const flushPendingSaves = useCallback(async () => {
+    // Flush debounced title save immediately
+    if (titleTimerRef.current) {
+      clearTimeout(titleTimerRef.current);
+      titleTimerRef.current = null;
+      const id = surveyIdRef.current;
+      if (id) {
+        await updateSurvey(id, { title: surveyName }).catch((e) =>
+          console.error("Title flush failed:", e)
+        );
+      }
+    }
+    // Await all in-flight question saves
+    if (pendingSavesRef.current.size > 0) {
+      await Promise.allSettled([...pendingSavesRef.current]);
+    }
+  }, [surveyName]);
+
+  // ---------------------------------------------------------------
+  // 6) Preview handler
   // ---------------------------------------------------------------
   const handlePreview = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -274,7 +305,7 @@ export default function SurveyBuilderPage() {
           </div>
         </div>
       </div>
-      <WorkflowStepper onPreviewClick={handlePreview} />
+      <WorkflowStepper onPreviewClick={handlePreview} onBeforeNavigate={flushPendingSaves} />
       <div className="bg-white border-b border-[#e5e7e9] px-6 py-0 flex items-center justify-between gap-2 flex-nowrap min-h-[40px]">
         <div className="flex items-center gap-0 flex-1 min-w-0">
           {DESIGN_TABS.map((tab) => (

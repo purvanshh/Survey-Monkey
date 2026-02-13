@@ -4,7 +4,7 @@
  * Compatible with Next.js App Router (client and server components).
  */
 
-const DEFAULT_API_BASE = "https://surveymonkey-backend-production.up.railway.app";
+const DEFAULT_API_BASE = "https://surveymonkey-backend.onrender.com";
 
 /**
  * Returns the API base URL. Uses NEXT_PUBLIC_API_URL when set.
