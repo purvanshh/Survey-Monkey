@@ -26,7 +26,13 @@ const DROPDOWN_TYPES = [
   { label: "Ranking", icon: "ranking", locked: true },
 ] as const;
 
-const TYPE_LABELS = DROPDOWN_TYPES.map((t) => t.label);
+type QuestionTypeLabel = (typeof DROPDOWN_TYPES)[number]["label"];
+
+const TYPE_LABELS: readonly QuestionTypeLabel[] = DROPDOWN_TYPES.map((t) => t.label);
+
+function isValidQuestionType(s: string): s is QuestionTypeLabel {
+  return (TYPE_LABELS as readonly string[]).includes(s);
+}
 
 function FormattingToolbar() {
   return (
@@ -72,7 +78,10 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
   const [showModal, setShowModal] = useState(false);
   const [question, setQuestion] = useState(savedData?.text ?? "");
   const [inputFocused, setInputFocused] = useState(false);
-  const [selectedType, setSelectedType] = useState(savedData?.type ?? DEFAULT_TYPE);
+  const [selectedType, setSelectedType] = useState<QuestionTypeLabel>(() => {
+    const t = savedData?.type ?? DEFAULT_TYPE;
+    return isValidQuestionType(t) ? t : DEFAULT_TYPE;
+  });
   const [answerGeniusEnabled, setAnswerGeniusEnabled] = useState(true);
   const [editTab, setEditTab] = useState<"edit" | "options" | "logic" | "copy">("edit");
   const [answerChoices, setAnswerChoices] = useState<string[]>(savedData?.answerChoices?.length ? savedData.answerChoices : ["", "", ""]);
@@ -84,7 +93,7 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
   useEffect(() => {
     if (savedData && isEditing) {
       setQuestion(savedData.text);
-      setSelectedType(savedData.type);
+      if (isValidQuestionType(savedData.type)) setSelectedType(savedData.type);
       setAnswerChoices(savedData.answerChoices?.length ? savedData.answerChoices : ["", "", ""]);
     }
   }, [savedData, isEditing]);
@@ -104,7 +113,7 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
     if (savedData) {
       setIsEditing(false);
       setQuestion(savedData.text);
-      setSelectedType(savedData.type);
+      if (isValidQuestionType(savedData.type)) setSelectedType(savedData.type);
       setAnswerChoices(savedData.answerChoices?.length ? savedData.answerChoices : ["", "", ""]);
     }
   };
@@ -120,7 +129,7 @@ export default function QuestionBlock({ questionNumber = 1, savedData = null, on
   }, []);
 
   const applyPrediction = useCallback((value: string, predicted: string | null) => {
-    if (predicted && TYPE_LABELS.includes(predicted)) {
+    if (predicted && isValidQuestionType(predicted)) {
       setSelectedType(predicted);
     }
   }, []);
